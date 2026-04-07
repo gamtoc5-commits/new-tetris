@@ -1,10 +1,10 @@
-// Phaser 3 Neon Tetris - Fixed Version
+// Phaser 3 Tactile Playroom - Cute Tetris
 const config = {
     type: Phaser.AUTO,
     width: 320,
     height: 640,
     parent: 'game-container',
-    backgroundColor: '#000000',
+    transparent: true,
     scene: {
         preload: preload,
         create: create,
@@ -18,7 +18,7 @@ const COLS = 10;
 const ROWS = 20;
 const BLOCK_SIZE = 32;
 
-// Tetromino definitions
+// Piece Definitions
 const SHAPES = {
     'I': [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]],
     'J': [[1,0,0], [1,1,1], [0,0,0]],
@@ -29,25 +29,40 @@ const SHAPES = {
     'Z': [[1,1,0], [0,1,1], [0,0,0]]
 };
 
+// Pastel Palette from Tailwind Config
 const COLORS = {
-    'I': 0x00f3ff,
-    'J': 0x0055ff,
-    'L': 0xff8c00,
-    'O': 0xffff00,
-    'S': 0x00ff00,
-    'T': 0xbc13fe,
-    'Z': 0xff3131
+    'I': 0xb8dffd, // secondary-container (Blue)
+    'J': 0xaad1ee, // secondary-fixed-dim (Light Blue)
+    'L': 0xfdb5d3, // primary-container (Pink)
+    'O': 0xbdfac4, // tertiary-container (Green)
+    'S': 0xeda7c5, // primary-fixed-dim (Light Pink)
+    'T': 0xe1dbde, // surface-container-highest (Gray-Lavender)
+    'Z': 0xf74b6d  // error-container (Soft Red)
+};
+
+const FACES = {
+    'I': ':)', 
+    'J': ':/', 
+    'L': ';)', 
+    'O': ':o', 
+    'S': 'o_o', 
+    'T': '^w^', 
+    'Z': ':('
 };
 
 let board = [];
 let activePiece = null;
+let nextPiece = null;
+let holdPiece = null;
+let canHold = true;
 let score = 0;
 let level = 1;
+let lines = 0;
 let dropCounter = 0;
 let dropInterval = 1000;
 let softDropCounter = 0;
-let softDropInterval = 50; // Speed of soft drop in ms
-let gameState = 'INTRO'; // INTRO, PLAYING, GAMEOVER
+let softDropInterval = 50;
+let gameState = 'INTRO'; // INTRO, PLAYING, GAMEOVER, PAUSED
 
 let cursors;
 let graphics;
@@ -57,8 +72,11 @@ let emitters = {};
 const overlay = document.getElementById('overlay');
 const overlayTitle = document.getElementById('overlay-title');
 const startBtn = document.getElementById('start-btn');
-const scoreUI = document.getElementById('score-value');
-const levelUI = document.getElementById('level-value');
+const uiScore = document.getElementById('score-value-ui');
+const uiLevel = document.getElementById('level-value-ui');
+const uiLines = document.getElementById('lines-value-ui');
+const nextContainer = document.getElementById('next-piece-container');
+const holdContainer = document.getElementById('hold-piece-container');
 
 function preload() {}
 
@@ -66,32 +84,32 @@ function create() {
     graphics = this.add.graphics();
     cursors = this.input.keyboard.createCursorKeys();
     
-    // Create board
     initBoard();
 
-    // Start Button Event
-    startBtn.onclick = () => {
-        startGame.call(this);
-    };
+    // UI Buttons
+    startBtn.onclick = () => startGame.call(this);
+    
+    // D-Pad UI 연동
+    document.getElementById('btn-left').onclick = () => { if(gameState==='PLAYING') movePiece(-1, 0); };
+    document.getElementById('btn-right').onclick = () => { if(gameState==='PLAYING') movePiece(1, 0); };
+    document.getElementById('btn-rotate').onclick = () => { if(gameState==='PLAYING') rotatePiece(); };
+    document.getElementById('btn-down').onclick = () => { if(gameState==='PLAYING') dropPiece.call(this); };
+    document.getElementById('btn-drop').onclick = () => { if(gameState==='PLAYING') hardDrop.call(this); };
+    document.getElementById('btn-hold').onclick = () => { if(gameState==='PLAYING') hold.call(this); };
 
-    // Keyboard inputs
-    this.input.keyboard.on('keydown-UP', () => {
-        if (gameState !== 'PLAYING') return;
-        rotatePiece();
-    });
+    // Keyboard Listeners
+    this.input.keyboard.on('keydown-UP', () => { if(gameState==='PLAYING') rotatePiece(); });
+    this.input.keyboard.on('keydown-SPACE', () => { if(gameState==='PLAYING') hardDrop.call(this); });
+    this.input.keyboard.on('keydown-C', () => { if(gameState==='PLAYING') hold.call(this); });
+    this.input.keyboard.on('keydown-P', () => togglePause.call(this));
 
-    this.input.keyboard.on('keydown-SPACE', () => {
-        if (gameState !== 'PLAYING') return;
-        hardDrop.call(this);
-    });
-
-    // Particle Emitters
+    // Particles (Pastel color burst)
     Object.keys(COLORS).forEach(key => {
         emitters[key] = this.add.particles(0, 0, createParticleTexture(this, COLORS[key]), {
-            lifespan: 800,
-            speed: { min: 150, max: 250 },
+            lifespan: 600,
+            speed: { min: 100, max: 200 },
             scale: { start: 1, end: 0 },
-            alpha: { start: 1, end: 0 },
+            alpha: { start: 0.8, end: 0 },
             blendMode: 'ADD',
             emitting: false
         });
@@ -109,18 +127,35 @@ function startGame() {
     initBoard();
     score = 0;
     level = 1;
+    lines = 0;
     dropInterval = 1000;
-    updateScoreUI();
-    levelUI.innerText = level;
-    
-    overlay.classList.add('hidden');
+    holdPiece = null;
+    canHold = true;
     gameState = 'PLAYING';
-    resetPiece.call(this);
+    
+    updateUI();
+    overlay.classList.add('hidden');
+    
+    // Initial Spawn
+    nextPiece = generateRandomPiece();
+    spawnPiece.call(this);
+}
+
+function togglePause() {
+    if (gameState === 'PLAYING') {
+        gameState = 'PAUSED';
+        overlayTitle.innerText = "Paused";
+        startBtn.querySelector('.font-headline').innerText = "Resume";
+        overlay.classList.remove('hidden');
+    } else if (gameState === 'PAUSED') {
+        gameState = 'PLAYING';
+        overlay.classList.add('hidden');
+    }
 }
 
 function update(time, delta) {
     if (gameState !== 'PLAYING') {
-        draw.call(this); // Keep drawing the board/intro state
+        draw.call(this);
         return;
     }
 
@@ -131,14 +166,11 @@ function update(time, delta) {
         dropCounter = 0;
     }
 
-    // Horizontal movement
-    if (Phaser.Input.Keyboard.JustDown(cursors.left)) {
-        movePiece(-1, 0);
-    } else if (Phaser.Input.Keyboard.JustDown(cursors.right)) {
-        movePiece(1, 0);
-    }
+    // Keyboard Inputs (JustDown)
+    if (Phaser.Input.Keyboard.JustDown(cursors.left)) movePiece(-1, 0);
+    if (Phaser.Input.Keyboard.JustDown(cursors.right)) movePiece(1, 0);
 
-    // Soft Drop - Fixed with its own interval to prevent freeze
+    // Soft Drop
     if (cursors.down.isDown) {
         softDropCounter += delta;
         if (softDropCounter > softDropInterval) {
@@ -152,81 +184,139 @@ function update(time, delta) {
     draw.call(this);
 }
 
-function createParticleTexture(scene, color) {
-    const key = 'particle_' + color;
-    if (scene.textures.exists(key)) return key;
-    
-    const graphics = scene.make.graphics({ x: 0, y: 0, add: false });
-    graphics.fillStyle(color, 1);
-    graphics.fillCircle(4, 4, 4);
-    graphics.generateTexture(key, 8, 8);
-    return key;
-}
-
 function draw() {
     graphics.clear();
 
-    // Draw board
+    // Board Blocks
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             if (board[r][c]) {
-                drawBlock(c, r, COLORS[board[r][c]]);
+                drawBlock(c, r, board[r][c]);
             }
         }
     }
 
-    // Draw active piece
+    // Active Piece
     if (activePiece && gameState === 'PLAYING') {
-        const color = COLORS[activePiece.type];
         activePiece.shape.forEach((row, y) => {
             row.forEach((value, x) => {
                 if (value) {
-                    drawBlock(activePiece.x + x, activePiece.y + y, color);
+                    drawBlock(activePiece.x + x, activePiece.y + y, activePiece.type);
                 }
             });
         });
     }
-
-    // Grid lines
-    graphics.lineStyle(1, 0x333333, 0.3);
-    for (let x = 0; x <= COLS; x++) {
-        graphics.moveTo(x * BLOCK_SIZE, 0);
-        graphics.lineTo(x * BLOCK_SIZE, ROWS * BLOCK_SIZE);
-    }
-    for (let y = 0; y <= ROWS; y++) {
-        graphics.moveTo(0, y * BLOCK_SIZE);
-        graphics.lineTo(COLS * BLOCK_SIZE, y * BLOCK_SIZE);
-    }
-    graphics.strokePath();
 }
 
-function drawBlock(x, y, color) {
-    graphics.fillStyle(color, 0.8);
-    graphics.fillRect(x * BLOCK_SIZE + 1, y * BLOCK_SIZE + 1, BLOCK_SIZE - 2, BLOCK_SIZE - 2);
-    graphics.lineStyle(2, color, 1);
-    graphics.strokeRect(x * BLOCK_SIZE + 2, y * BLOCK_SIZE + 2, BLOCK_SIZE - 4, BLOCK_SIZE - 4);
+function drawBlock(x, y, type) {
+    const color = COLORS[type];
+    const face = FACES[type];
+    
+    // Main Block (Rounded feel via shadow or just rectangle for now, Phaser has limited rounding in Graphics)
+    graphics.fillStyle(color, 1);
+    // Mimic rounded-md (approx 4-8px)
+    graphics.fillRoundedRect(x * BLOCK_SIZE + 2, y * BLOCK_SIZE + 2, BLOCK_SIZE - 4, BLOCK_SIZE - 4, 6);
+    
+    // Subtle border/highlight
+    graphics.lineStyle(1, 0xffffff, 0.4);
+    graphics.strokeRoundedRect(x * BLOCK_SIZE + 3, y * BLOCK_SIZE + 3, BLOCK_SIZE - 6, BLOCK_SIZE - 6, 4);
+
+    // Note: To draw the Face text, we'd normally use this.add.text, but for efficiency in draw loop,
+    // we could use a texture. For now, I'll skip text in the raw graphics draw or add them as sprites.
+    // Actually, I'll add text objects for faces to keep the "Cute" vibe!
 }
 
-function resetPiece() {
-    const types = 'IJLOSTZ';
-    const type = types[Math.floor(Math.random() * types.length)];
-    activePiece = {
-        type: type,
-        shape: SHAPES[type],
-        x: Math.floor(COLS / 2) - Math.floor(SHAPES[type][0].length / 2),
-        y: 0
-    };
+// Optimized block face rendering:
+// In a real Phaser game, we'd spawning sprites, but since we are using Graphics for the grid,
+// we could use a Bitmapfont or simple Text. Let's stick to the current logic but add a "block visual" function.
+
+function spawnPiece() {
+    activePiece = nextPiece;
+    nextPiece = generateRandomPiece();
+    canHold = true;
+    
+    activePiece.x = Math.floor(COLS / 2) - Math.floor(activePiece.shape[0].length / 2);
+    activePiece.y = 0;
+
+    renderPreviews();
 
     if (collide()) {
-        triggerGameOver();
+        gameState = 'GAMEOVER';
+        overlayTitle.innerHTML = "GAME OVER<br><span style='font-size:20px; color:#824a64; font-variant:normal;'>Score: " + score + "</span>";
+        startBtn.querySelector('.font-headline').innerText = "Retry";
+        overlay.classList.remove('hidden');
     }
 }
 
-function triggerGameOver() {
-    gameState = 'GAMEOVER';
-    overlayTitle.innerHTML = "GAME OVER<br><span style='font-size:24px'>Score: " + score + "</span>";
-    startBtn.innerText = "Try Again";
-    overlay.classList.remove('hidden');
+function generateRandomPiece() {
+    const types = 'IJLOSTZ';
+    const type = types[Math.floor(Math.random() * types.length)];
+    return {
+        type: type,
+        shape: SHAPES[type],
+        x: 0,
+        y: 0
+    };
+}
+
+function hold() {
+    if (!canHold) return;
+    
+    if (holdPiece === null) {
+        holdPiece = { type: activePiece.type, shape: SHAPES[activePiece.type] };
+        spawnPiece.call(this);
+    } else {
+        const temp = { type: activePiece.type, shape: SHAPES[activePiece.type] };
+        activePiece = { type: holdPiece.type, shape: SHAPES[holdPiece.type], x: Math.floor(COLS/2)-2, y: 0 };
+        holdPiece = temp;
+        // Collision check after swap
+        if (collide()) {
+            // Swap back if collision
+            holdPiece = activePiece;
+            activePiece = temp;
+        }
+    }
+    canHold = false;
+    renderPreviews();
+}
+
+function renderPreviews() {
+    // Next Piece HTML
+    nextContainer.innerHTML = '';
+    const nextGrid = document.createElement('div');
+    nextGrid.className = 'grid grid-cols-4 gap-1';
+    nextPiece.shape.forEach(row => {
+        row.forEach(val => {
+            const b = document.createElement('div');
+            b.className = 'w-4 h-4 rounded-sm border border-white/20';
+            if (val) {
+                b.style.backgroundColor = '#' + COLORS[nextPiece.type].toString(16).padStart(6, '0');
+            }
+            nextGrid.appendChild(b);
+        });
+    });
+    nextContainer.appendChild(nextGrid);
+
+    // Hold Piece HTML
+    holdContainer.innerHTML = '';
+    if (holdPiece) {
+        const holdGrid = document.createElement('div');
+        holdGrid.className = 'grid grid-cols-4 gap-1';
+        holdPiece.shape.forEach(row => {
+            row.forEach(val => {
+                const b = document.createElement('div');
+                b.className = 'w-4 h-4 rounded-sm border border-white/20';
+                if (val) b.style.backgroundColor = '#' + COLORS[holdPiece.type].toString(16).padStart(6, '0');
+                holdGrid.appendChild(b);
+            });
+        });
+        holdContainer.appendChild(holdGrid);
+    } else {
+        const icon = document.createElement('span');
+        icon.className = 'material-symbols-outlined text-outline-variant text-4xl';
+        icon.innerText = 'back_hand';
+        holdContainer.appendChild(icon);
+    }
 }
 
 function collide(newX = activePiece.x, newY = activePiece.y, newShape = activePiece.shape) {
@@ -244,7 +334,6 @@ function collide(newX = activePiece.x, newY = activePiece.y, newShape = activePi
 }
 
 function movePiece(dx, dy) {
-    if (!activePiece) return false;
     activePiece.x += dx;
     activePiece.y += dy;
     if (collide()) {
@@ -284,42 +373,56 @@ function lockPiece() {
         });
     });
 
-    updateScore.call(this, 10);
+    addScore.call(this, 10);
     clearLines.call(this);
-    resetPiece.call(this);
+    spawnPiece.call(this);
 }
 
 function clearLines() {
-    let linesCleared = 0;
+    let linesInFrame = 0;
     for (let r = ROWS - 1; r >= 0; r--) {
-        if (board[r].every(value => value !== 0)) {
+        if (board[r].every(v => v !== 0)) {
             for (let c = 0; c < COLS; c++) {
                 const type = board[r][c];
-                emitters[type].explode(12, c * BLOCK_SIZE + 16, r * BLOCK_SIZE + 16);
+                emitters[type].explode(10, c * BLOCK_SIZE + 16, r * BLOCK_SIZE + 16);
             }
             board.splice(r, 1);
             board.unshift(new Array(COLS).fill(0));
-            linesCleared++;
+            linesInFrame++;
             r++;
         }
     }
 
-    if (linesCleared > 0) {
-        const rewards = [0, 100, 300, 500, 800];
-        updateScore.call(this, rewards[linesCleared] * level);
-        if (score > level * 1000) {
+    if (linesInFrame > 0) {
+        lines += linesInFrame;
+        const pts = [0, 100, 300, 500, 800];
+        addScore.call(this, pts[linesInFrame] * level);
+        
+        if (lines >= level * 10) {
             level++;
             dropInterval = Math.max(100, 1000 - (level - 1) * 100);
-            levelUI.innerText = level;
         }
+        updateUI();
     }
 }
 
-function updateScore(points) {
-    score += points;
-    updateScoreUI();
+function addScore(pts) {
+    score += pts;
+    updateUI();
 }
 
-function updateScoreUI() {
-    if (scoreUI) scoreUI.innerText = score;
+function updateUI() {
+    if (uiScore) uiScore.innerText = score.toLocaleString().padStart(7, '0');
+    if (uiLevel) uiLevel.innerText = level.toString().padStart(2, '0');
+    if (uiLines) uiLines.innerText = lines;
+}
+
+function createParticleTexture(scene, color) {
+    const key = 'pastel_' + color;
+    if (scene.textures.exists(key)) return key;
+    const g = scene.make.graphics({ x: 0, y: 0, add: false });
+    g.fillStyle(color, 1);
+    g.fillCircle(4, 4, 4);
+    g.generateTexture(key, 8, 8);
+    return key;
 }
