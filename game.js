@@ -1,8 +1,8 @@
-// Phaser 3 Tactile Playroom - Cute Tetris (Pixel Perfect Redesign)
+// Phaser 3 Tactile Playroom - Cute Tetris (400x800 Redesign)
 const config = {
     type: Phaser.AUTO,
-    width: 320,
-    height: 640,
+    width: 400,
+    height: 800,
     parent: 'game-container',
     transparent: true,
     scene: {
@@ -16,9 +16,9 @@ const game = new Phaser.Game(config);
 
 const COLS = 10;
 const ROWS = 20;
-const BLOCK_SIZE = 32;
+const BLOCK_SIZE = 40;
 
-// Pieces and Faces
+// Piece Definitions
 const SHAPES = {
     'I': [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]],
     'J': [[1,0,0], [1,1,1], [0,0,0]],
@@ -30,13 +30,13 @@ const SHAPES = {
 };
 
 const COLORS = {
-    'I': 0xb8dffd, // secondary-container (Blue)
-    'J': 0xeda7c5, // primary-fixed-dim (Soft Pink)
-    'L': 0xfdb5d3, // primary-container (Pink)
-    'O': 0xbdfac4, // tertiary-container (Green)
-    'S': 0xafebb6, // tertiary-fixed-dim (Light Green)
-    'T': 0xe1dbde, // surface-container-highest (Lavender)
-    'Z': 0xf74b6d  // error-container (Soft Red)
+    'I': 0xb8dffd, // secondary-container
+    'J': 0xeda7c5, // primary-fixed-dim
+    'L': 0xfdb5d3, // primary-container
+    'O': 0xbdfac4, // tertiary-container
+    'S': 0xafebb6, // tertiary-fixed-dim
+    'T': 0xe1dbde, // surface-container-highest
+    'Z': 0xf74b6d  // error-container
 };
 
 const FACES = {
@@ -57,13 +57,13 @@ let canHold = true;
 let score = 0;
 let level = 1;
 let lines = 0;
-let gameState = 'INTRO'; // INTRO, PLAYING, GAMEOVER, PAUSED
+let gameState = 'INTRO';
 let dropCounter = 0;
 let dropInterval = 1000;
 
 let graphics;
 let emitters = {};
-let faceTexts = []; // Pooling text objects for active piece faces
+let faceTexts = [];
 
 // DOM Elements
 const overlay = document.getElementById('overlay');
@@ -86,7 +86,7 @@ function create() {
     // UI Listeners
     startBtn.onclick = () => startGame.call(this);
 
-    // D-Pad UI 연동
+    // D-Pad Mapping
     document.getElementById('btn-left').onclick = () => { if(gameState==='PLAYING') movePiece(-1, 0); };
     document.getElementById('btn-right').onclick = () => { if(gameState==='PLAYING') movePiece(1, 0); };
     document.getElementById('btn-rotate').onclick = () => { if(gameState==='PLAYING') rotatePiece(); };
@@ -114,12 +114,12 @@ function create() {
         });
     });
 
-    // Create a pool of 4 text objects for active piece faces
+    // Face Pool
     for (let i = 0; i < 4; i++) {
         faceTexts.push(this.add.text(0, 0, '', {
             fontFamily: 'Plus Jakarta Sans',
-            fontSize: '14px',
-            fontWeight: 'bold',
+            fontSize: '18px',
+            fontWeight: '900',
             color: '#302e30'
         }).setOrigin(0.5).setDepth(10).setVisible(false));
     }
@@ -153,7 +153,7 @@ function togglePause() {
     if (gameState === 'PLAYING') {
         gameState = 'PAUSED';
         overlayTitle.innerText = "PAUSED";
-        startBtn.querySelector('.font-headline').innerText = "RESUME";
+        startBtn.innerHTML = '<span class="material-symbols-outlined text-3xl" data-icon="play_arrow" style="font-variation-settings: \'FILL\' 1;">play_arrow</span> Resume Game';
         overlay.classList.remove('hidden');
     } else if (gameState === 'PAUSED') {
         gameState = 'PLAYING';
@@ -163,7 +163,7 @@ function togglePause() {
 
 function update(time, delta) {
     if (gameState !== 'PLAYING') {
-        draw.call(this);
+        draw.call(this); // Keep drawing board even if paused
         return;
     }
 
@@ -180,13 +180,11 @@ function draw() {
     graphics.clear();
     faceTexts.forEach(t => t.setVisible(false));
 
-    // Draw Board
+    // Draw Board Blocks
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             if (board[r][c]) {
-                const type = board[r][c];
-                drawBlock(c, r, type);
-                // For static board, we don't draw faces to keep it clean, or draw them simplified
+                drawBlock(c, r, board[r][c]);
             }
         }
     }
@@ -197,18 +195,15 @@ function draw() {
         activePiece.shape.forEach((row, y) => {
             row.forEach((value, x) => {
                 if (value) {
-                    const blockX = activePiece.x + x;
-                    const blockY = activePiece.y + y;
-                    drawBlock(blockX, blockY, activePiece.type);
+                    const bX = activePiece.x + x;
+                    const bY = activePiece.y + y;
+                    drawBlock(bX, bY, activePiece.type);
                     
-                    // Show Face
                     if (textIdx < faceTexts.length) {
                         const txt = faceTexts[textIdx++];
                         txt.setText(FACES[activePiece.type]);
-                        txt.setPosition(blockX * BLOCK_SIZE + 16, blockY * BLOCK_SIZE + 18);
+                        txt.setPosition(bX * BLOCK_SIZE + (BLOCK_SIZE / 2), bY * BLOCK_SIZE + (BLOCK_SIZE / 2) + 2);
                         txt.setVisible(true);
-                        // Adjust text color based on background luminance (simplified)
-                        txt.setColor(activePiece.type === 'Z' || activePiece.type === 'secondary' ? '#fff' : '#302e30');
                     }
                 }
             });
@@ -219,10 +214,10 @@ function draw() {
 function drawBlock(x, y, type) {
     const color = COLORS[type];
     graphics.fillStyle(color, 1);
-    graphics.fillRoundedRect(x * BLOCK_SIZE + 2, y * BLOCK_SIZE + 2, BLOCK_SIZE - 4, BLOCK_SIZE - 4, 8);
-    // Bevel effect
-    graphics.lineStyle(2, 0xffffff, 0.4);
-    graphics.strokeRoundedRect(x * BLOCK_SIZE + 4, y * BLOCK_SIZE + 4, BLOCK_SIZE - 8, BLOCK_SIZE - 8, 6);
+    graphics.fillRoundedRect(x * BLOCK_SIZE + 3, y * BLOCK_SIZE + 3, BLOCK_SIZE - 6, BLOCK_SIZE - 6, 10);
+    // Subtle inner bezel
+    graphics.lineStyle(2, 0xffffff, 0.3);
+    graphics.strokeRoundedRect(x * BLOCK_SIZE + 5, y * BLOCK_SIZE + 5, BLOCK_SIZE - 10, BLOCK_SIZE - 10, 8);
 }
 
 function spawnPiece() {
@@ -237,8 +232,8 @@ function spawnPiece() {
 
     if (collide()) {
         gameState = 'GAMEOVER';
-        overlayTitle.innerHTML = "GAME OVER<br><span style='font-size:24px; color:#824a64;'>Score: " + score + "</span>";
-        startBtn.querySelector('.font-headline').innerText = "RETRY";
+        overlayTitle.innerHTML = "GAME OVER<br><span style='font-size:20px; color:#824a64;'>Score: " + score + "</span>";
+        startBtn.innerHTML = 'Retry Game';
         overlay.classList.remove('hidden');
     }
 }
@@ -264,30 +259,27 @@ function hold() {
 }
 
 function renderPreviews() {
-    // Render Next UI
+    // UI Previews (HTML)
     nextContainer.innerHTML = '';
-    const nextGrid = createUIPieceGrid(nextPiece);
-    nextContainer.appendChild(nextGrid);
+    nextContainer.appendChild(createPieceGrid(nextPiece));
 
-    // Render Hold UI
     holdContainer.innerHTML = '';
     if (holdPiece) {
-        holdContainer.appendChild(createUIPieceGrid(holdPiece));
+        holdContainer.appendChild(createPieceGrid(holdPiece));
     } else {
         holdContainer.innerHTML = '<span class="material-symbols-outlined text-outline-variant text-4xl">back_hand</span>';
     }
 }
 
-function createUIPieceGrid(piece) {
+function createPieceGrid(piece) {
     const grid = document.createElement('div');
-    grid.className = 'grid grid-cols-4 gap-1';
+    grid.className = 'grid grid-cols-4 gap-1 transform scale-90';
     piece.shape.forEach(row => {
         row.forEach(val => {
             const b = document.createElement('div');
             b.className = 'w-4 h-4 rounded-md border border-white/20';
             if (val) {
                 b.style.backgroundColor = '#' + COLORS[piece.type].toString(16).padStart(6, '0');
-                b.className += ' shadow-sm';
             } else {
                 b.className += ' opacity-0';
             }
@@ -359,7 +351,7 @@ function clearLines() {
     for (let r = ROWS - 1; r >= 0; r--) {
         if (board[r].every(v => v !== 0)) {
             for (let c = 0; c < COLS; c++) {
-                emitters[board[r][c]].explode(5, c * BLOCK_SIZE + 16, r * BLOCK_SIZE + 16);
+                emitters[board[r][c]].explode(5, c * BLOCK_SIZE + (BLOCK_SIZE/2), r * BLOCK_SIZE + (BLOCK_SIZE/2));
             }
             board.splice(r, 1);
             board.unshift(new Array(COLS).fill(0));
@@ -389,7 +381,7 @@ function createBlockTexture(scene, color, key) {
     if (scene.textures.exists(name)) return name;
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
     g.fillStyle(color, 1);
-    g.fillRoundedRect(0, 0, BLOCK_SIZE, BLOCK_SIZE, 8);
+    g.fillRoundedRect(0, 0, BLOCK_SIZE, BLOCK_SIZE, 10);
     g.generateTexture(name, BLOCK_SIZE, BLOCK_SIZE);
     return name;
 }

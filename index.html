@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Tactile Playroom - Cute Tetris</title>
+    <title>Tactile Playroom - Cute Tetris (400x800)</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Be+Vietnam+Pro:wght@300;400;500;600&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
@@ -89,10 +89,10 @@
         }
         .tetris-grid {
             background-image: radial-gradient(circle, #e1dbde 2px, transparent 2px);
-            background-size: 32px 32px;
+            background-size: 40px 40px;
         }
         .block-face {
-            font-size: 14px;
+            font-size: 16px;
             line-height: 1;
             letter-spacing: -1px;
         }
@@ -120,135 +120,156 @@
         </defs>
     </svg>
 
-    <!-- Floating Background Elements -->
-    <div class="fixed inset-0 pointer-events-none z-0 opacity-20">
-        <div class="absolute top-20 left-[10%] w-16 h-16 bg-primary-container rounded-sm rotate-12 flex items-center justify-center">
-            <span class="text-on-primary-container font-bold text-xl">:)</span>
+    <!-- TopNavBar -->
+    <nav class="bg-[#fbf5f7]/80 backdrop-blur-sm w-full top-0 px-8 py-4 font-headline tracking-tight z-10 flex justify-between items-center max-w-7xl mx-auto">
+        <div class="text-2xl font-bold text-[#302e30] tracking-widest uppercase">
+            Tactile Playroom
         </div>
-        <div class="absolute top-[40%] right-[5%] w-20 h-12 bg-secondary-container rounded-sm -rotate-6 flex items-center justify-center">
-            <span class="text-on-secondary-container font-bold text-xl">;)</span>
+        <div class="hidden md:flex gap-10 items-center">
+            <a class="text-[#302e30] opacity-60 hover:scale-95 transition-transform duration-200" href="#">How to Play</a>
+            <a class="text-[#302e30] opacity-60 hover:scale-95 transition-transform duration-200" href="#">Leaderboard</a>
+            <a class="text-[#302e30] opacity-60 hover:scale-95 transition-transform duration-200" href="#">Settings</a>
         </div>
-        <div class="absolute bottom-20 left-[15%] w-12 h-24 bg-tertiary-container rounded-sm rotate-45 flex items-center justify-center">
-            <span class="text-on-tertiary-container font-bold text-xl">:0</span>
-        </div>
-    </div>
-
-    <!-- TopNavBar: Centered as in screenshot -->
-    <nav class="bg-[#fbf5f7]/80 backdrop-blur-sm w-full top-0 px-8 py-6 font-headline tracking-tighter z-10">
-        <div class="flex justify-between items-center max-w-7xl mx-auto relative">
-            <div class="flex-1 hidden md:block"></div>
-            <div class="text-3xl font-black text-[#302e30] tracking-widest uppercase italic absolute left-1/2 -translate-x-1/2">
-                Tactile Playroom
-            </div>
-            <div class="flex items-center gap-4 ml-auto">
-                <button class="material-symbols-outlined text-primary hover:scale-110 transition-transform" data-icon="account_circle">account_circle</button>
-            </div>
+        <div class="flex items-center gap-4">
+            <button class="material-symbols-outlined text-on-surface hover:scale-95 transition-transform duration-200" data-icon="account_circle">account_circle</button>
         </div>
     </nav>
 
-    <!-- Main Game Canvas -->
-    <main class="flex-grow flex items-center justify-center p-4 md:p-8 z-10">
-        <div class="max-w-7xl w-full grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
+    <!-- Main Game Context -->
+    <main class="flex-grow flex items-center justify-center p-4 md:p-8">
+        <div class="max-w-7xl w-full grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
             
-            <!-- Left Side: Hold & Stats -->
-            <div class="md:col-span-3 space-y-8 order-2 md:order-1">
-                <div class="bg-surface-container-low rounded-[2rem] p-8 flex flex-col items-center shadow-sm border-b-8 border-surface-container-highest">
-                    <span class="label-caps text-xs font-bold tracking-[0.2em] text-outline mb-6 uppercase">Hold Piece</span>
-                    <div id="hold-piece-container" class="w-24 h-24 bg-white rounded-2xl flex items-center justify-center border-4 border-surface-container-high border-dotted relative">
+            <!-- Left Side: Controls & Score & Hold -->
+            <div class="md:col-span-3 space-y-8 flex flex-col">
+                <!-- Controller Map (Keyboard Instructions) -->
+                <div class="bg-surface-container-low/50 hand-drawn-border wobbly-line p-5 rounded-2xl flex flex-col gap-4 border-on-surface-variant/20 italic">
+                    <span class="label-caps text-[10px] font-black tracking-[0.2em] text-on-surface-variant uppercase text-center border-b border-on-surface-variant/10 pb-2">Controller Map</span>
+                    <div class="grid grid-cols-2 gap-x-4 gap-y-3">
+                        <div class="flex items-center gap-2 text-[#302e30]">
+                            <span class="px-2 py-0.5 bg-surface-container-lowest rounded-md border border-surface-container-high text-[10px] font-black font-mono shadow-sm">← →</span>
+                            <span class="text-[9px] font-bold tracking-wider text-on-surface-variant uppercase">Move</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-[#302e30]">
+                            <span class="px-2 py-0.5 bg-surface-container-lowest rounded-md border border-surface-container-high text-[10px] font-black font-mono shadow-sm">↑</span>
+                            <span class="text-[9px] font-bold tracking-wider text-on-surface-variant uppercase">Rotate</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-[#302e30]">
+                            <span class="px-2 py-0.5 bg-surface-container-lowest rounded-md border border-surface-container-high text-[10px] font-black font-mono shadow-sm">↓</span>
+                            <span class="text-[9px] font-bold tracking-wider text-on-surface-variant uppercase">Soft</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-[#302e30]">
+                            <span class="px-2 py-0.5 bg-surface-container-lowest rounded-md border border-surface-container-high text-[10px] font-black font-mono shadow-sm">SPCE</span>
+                            <span class="text-[9px] font-bold tracking-wider text-on-surface-variant uppercase">Hard</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-[#302e30]">
+                            <span class="px-2 py-0.5 bg-surface-container-lowest rounded-md border border-surface-container-high text-[10px] font-black font-mono shadow-sm">C</span>
+                            <span class="text-[9px] font-bold tracking-wider text-on-surface-variant uppercase">Hold</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-[#302e30]">
+                            <span class="px-2 py-0.5 bg-surface-container-lowest rounded-md border border-surface-container-high text-[10px] font-black font-mono shadow-sm">P</span>
+                            <span class="text-[9px] font-bold tracking-wider text-on-surface-variant uppercase">Pause</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hold Slot (Newly added to fit logic) -->
+                <div class="bg-surface-container-low rounded-lg p-6 flex flex-col items-center">
+                    <span class="label-caps text-xs font-bold tracking-widest text-on-surface-variant mb-4 uppercase">Hold Piece</span>
+                    <div id="hold-piece-container" class="w-24 h-24 bg-white rounded-xl flex items-center justify-center border-4 border-surface-container-high border-dotted relative">
                         <span class="material-symbols-outlined text-outline-variant text-4xl" data-icon="back_hand">back_hand</span>
                     </div>
-                    <span class="text-[10px] font-bold text-outline-variant mt-4 uppercase">[C] KEY</span>
                 </div>
-                <div class="bg-surface-container-low rounded-[2rem] p-8 space-y-8 shadow-sm border-b-8 border-surface-container-highest">
+
+                <!-- Score Board -->
+                <div class="bg-surface-container-low rounded-lg p-6 space-y-6">
                     <div>
-                        <span class="label-caps text-xs font-bold tracking-[0.2em] text-outline mb-2 uppercase">Current Score</span>
-                        <div id="score-value-ui" class="text-5xl font-black text-primary tracking-tighter">000,000</div>
+                        <span class="label-caps text-xs font-bold tracking-widest text-on-surface-variant uppercase">Score</span>
+                        <div id="score-value-ui" class="text-4xl font-extrabold text-primary tracking-tighter">000,000</div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-white p-4 rounded-2xl border-b-4 border-surface-container-high">
-                            <span class="label-caps text-[10px] font-bold tracking-widest text-outline uppercase">Level</span>
-                            <div id="level-value-ui" class="text-2xl font-black text-on-surface">01</div>
+                    <div class="flex justify-between items-center bg-surface-container-lowest p-3 rounded-xl border border-surface-container-high">
+                        <div>
+                            <span class="label-caps text-[10px] font-bold tracking-widest text-on-surface-variant uppercase">Level</span>
+                            <div id="level-value-ui" class="text-xl font-bold">01</div>
                         </div>
-                        <div class="bg-white p-4 rounded-2xl border-b-4 border-surface-container-high text-right">
-                            <span class="label-caps text-[10px] font-bold tracking-widest text-outline uppercase">Lines</span>
-                            <div id="lines-value-ui" class="text-2xl font-black text-on-surface">0</div>
+                        <div class="text-right">
+                            <span class="label-caps text-[10px] font-bold tracking-widest text-on-surface-variant uppercase">Lines</span>
+                            <div id="lines-value-ui" class="text-xl font-bold">0</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Center: Game Board (The Frame) -->
-            <div class="md:col-span-6 flex flex-col items-center order-1 md:order-2">
-                <div class="relative bg-white rounded-[3rem] p-6 shadow-[0_32px_64px_-16px_rgba(48,46,48,0.12)] border-[12px] border-surface-container-highest/30">
-                    
-                    <!-- Game Over / Pause Overlay -->
-                    <div id="overlay" class="absolute inset-0 z-50 bg-surface/90 backdrop-blur-xl rounded-[2.5rem] flex flex-col items-center justify-center space-y-8 transition-all duration-500">
-                        <div class="text-6xl font-black text-primary tracking-tighter uppercase italic leading-none mb-4 text-center" id="overlay-title">Ready?</div>
-                        <button id="start-btn" class="group flex items-center justify-between w-72 p-6 bg-primary-container rounded-2xl hover:scale-[0.96] transition-all duration-200 active:scale-95 shadow-xl border-b-8 border-primary/20">
-                            <div class="flex items-center gap-4">
-                                <div class="w-14 h-14 bg-white/40 rounded-full flex items-center justify-center">
-                                    <span class="material-symbols-outlined text-primary text-4xl" data-icon="play_circle" style="font-variation-settings: 'FILL' 1;">play_circle</span>
-                                </div>
-                                <div class="text-left">
-                                    <span class="font-headline font-black text-on-primary-container block text-xl">Start Game</span>
-                                    <span class="label-caps text-[10px] uppercase tracking-wider text-on-primary-container/70 font-bold">Mochi Master ;)</span>
-                                </div>
-                            </div>
+            <!-- Center Spot: Game Board & On-Screen Controls -->
+            <div class="md:col-span-6 flex flex-col items-center space-y-8">
+                <div class="relative bg-surface-container-high rounded-2xl p-5 shadow-2xl">
+                    <!-- Overlay -->
+                    <div id="overlay" class="absolute inset-0 z-50 bg-surface/80 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center space-y-4">
+                        <h2 id="overlay-title" class="text-5xl font-black text-on-surface tracking-tighter italic uppercase">Ready?</h2>
+                        <button id="start-btn" class="bg-primary text-on-primary px-10 py-4 rounded-full font-black text-xl hover:scale-95 transition-transform flex items-center gap-3 shadow-xl">
+                            <span class="material-symbols-outlined text-3xl" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+                            Start Game
                         </button>
                     </div>
 
-                    <!-- Canvas Container with Dot Grid -->
-                    <div id="game-container" class="tetris-grid w-[320px] h-[640px] bg-surface-container-lowest rounded-2xl relative overflow-hidden">
+                    <!-- Phaser Board Area: matches 400x800 -->
+                    <div id="game-container" class="tetris-grid w-[400px] h-[800px] bg-surface-container-lowest rounded-lg relative overflow-hidden ring-1 ring-black/5 shadow-inner">
                         <!-- Phaser Renders Here -->
                     </div>
                 </div>
 
-                <!-- Custom D-Pad: Wide Pill Shape as in Screenshot -->
-                <div class="mt-12 bg-surface-container-low p-6 px-12 rounded-full shadow-inner border border-surface-container-high flex items-center gap-10">
-                    <button id="btn-hold" class="w-16 h-16 bg-white rounded-full spring-active flex flex-col items-center justify-center text-on-surface shadow-md hover:bg-surface-container-low transition-colors border-4 border-surface-container-high">
-                        <span class="material-symbols-outlined text-2xl">back_hand</span>
+                <!-- D-Pad Pill -->
+                <div class="flex items-center gap-8 bg-surface-container-low p-4 px-10 rounded-full shadow-inner border border-surface-container-high">
+                    <button id="btn-hold" class="w-14 h-14 bg-surface-container-highest rounded-xl spring-active flex flex-col items-center justify-center text-on-surface shadow-sm hover:bg-surface-container-high transition-colors hand-drawn-border wobbly-line">
+                        <span class="material-symbols-outlined text-xl">rotate_right</span>
                         <span class="text-[8px] font-bold uppercase tracking-widest mt-1 opacity-40">HOLD</span>
                     </button>
                     
-                    <div class="grid grid-cols-3 gap-4">
-                        <div class="col-start-2">
-                            <button id="btn-rotate" class="w-14 h-14 bg-white rounded-full spring-active flex items-center justify-center shadow-md text-primary border-4 border-surface-container-high hover:scale-110 transition-transform">
-                                <span class="material-symbols-outlined text-3xl font-black">keyboard_arrow_up</span>
-                            </button>
-                        </div>
-                        <button id="btn-left" class="w-14 h-14 bg-white rounded-full spring-active flex items-center justify-center shadow-md text-primary border-4 border-surface-container-high hover:scale-110 transition-transform">
-                            <span class="material-symbols-outlined text-3xl font-black">keyboard_arrow_left</span>
+                    <div class="grid grid-cols-3 grid-rows-2 gap-3">
+                        <button id="btn-rotate" class="col-start-2 row-start-1 w-14 h-14 bg-white rounded-full spring-active flex items-center justify-center shadow-md text-primary border-2 border-primary/20 hover:scale-105 transition-transform hand-drawn-border wobbly-line">
+                            <span class="material-symbols-outlined text-2xl leading-none">keyboard_arrow_up</span>
                         </button>
-                        <button id="btn-down" class="w-14 h-14 bg-white rounded-full spring-active flex items-center justify-center shadow-md text-primary border-4 border-surface-container-high hover:scale-110 transition-transform">
-                            <span class="material-symbols-outlined text-3xl font-black">keyboard_arrow_down</span>
+                        <button id="btn-left" class="col-start-1 row-start-2 w-14 h-14 bg-white rounded-full spring-active flex items-center justify-center shadow-md text-primary border-2 border-primary/20 hover:scale-105 transition-transform hand-drawn-border wobbly-line">
+                            <span class="material-symbols-outlined text-2xl leading-none">keyboard_arrow_left</span>
                         </button>
-                        <button id="btn-right" class="w-14 h-14 bg-white rounded-full spring-active flex items-center justify-center shadow-md text-primary border-4 border-surface-container-high hover:scale-110 transition-transform">
-                            <span class="material-symbols-outlined text-3xl font-black">keyboard_arrow_right</span>
+                        <button id="btn-down" class="col-start-2 row-start-2 w-14 h-14 bg-white rounded-full spring-active flex items-center justify-center shadow-md text-primary border-2 border-primary/20 hover:scale-105 transition-transform hand-drawn-border wobbly-line">
+                            <span class="material-symbols-outlined text-2xl leading-none">keyboard_arrow_down</span>
+                        </button>
+                        <button id="btn-right" class="col-start-3 row-start-2 w-14 h-14 bg-white rounded-full spring-active flex items-center justify-center shadow-md text-primary border-2 border-primary/20 hover:scale-105 transition-transform hand-drawn-border wobbly-line">
+                            <span class="material-symbols-outlined text-2xl leading-none">keyboard_arrow_right</span>
                         </button>
                     </div>
 
-                    <button id="btn-drop" class="w-20 h-20 bg-primary text-on-primary rounded-full spring-active flex flex-col items-center justify-center shadow-xl hover:brightness-110 transition-all border-4 border-white/20">
-                        <span class="material-symbols-outlined text-3xl font-black">keyboard_double_arrow_down</span>
-                        <span class="text-[9px] font-black mt-1 tracking-tighter">DROP</span>
+                    <button id="btn-drop" class="w-16 h-16 bg-primary text-on-primary rounded-full spring-active flex flex-col items-center justify-center shadow-lg hover:brightness-110 transition-all hand-drawn-border wobbly-line border-white/20">
+                        <span class="material-symbols-outlined text-2xl leading-none">keyboard_double_arrow_down</span>
+                        <span class="text-[8px] font-black mt-0 tracking-tighter">DROP</span>
                     </button>
                 </div>
             </div>
 
-            <!-- Right Side: Next Up & Bear Card -->
-            <div class="md:col-span-3 space-y-8 order-3">
-                <div class="bg-surface-container-low rounded-[2rem] p-8 flex flex-col items-center shadow-sm border-b-8 border-surface-container-highest">
-                    <span class="label-caps text-xs font-bold tracking-[0.2em] text-outline mb-6 uppercase">Next Up</span>
-                    <div id="next-piece-container" class="w-28 h-28 bg-white rounded-2xl flex items-center justify-center relative overflow-hidden transition-all duration-300">
-                        <!-- Next piece rendered via JS -->
+            <!-- Right Side: Next Up & Decoration -->
+            <div class="md:col-span-3 space-y-8 flex flex-col">
+                <div class="bg-surface-container-low rounded-lg p-6 flex flex-col items-center">
+                    <span class="label-caps text-xs font-bold tracking-widest text-on-surface-variant mb-4 uppercase">Next</span>
+                    <div id="next-piece-container" class="w-24 h-24 bg-surface-container-highest rounded-xl flex items-center justify-center relative overflow-hidden transition-all duration-300">
+                        <!-- Piece Preview from JS -->
                     </div>
                 </div>
-                <div class="rounded-[2.5rem] overflow-hidden aspect-square relative group shadow-sm border-4 border-white shadow-xl transform rotate-2 hover:rotate-0 transition-transform duration-500">
-                    <img alt="Cute Bear Illustration" class="w-full h-full object-cover group-hover:scale-110 transition-all duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmafBMpOsnk74oCH3Z_nkfsjfaabMMXiEEaYU7QXwGXkkEVfWvIJUbBF8n_9gVTMu6cKQHgKzTrXKrqgejYtIbFFo8Re9S4nlifvh3h2vaz04HcUPnJhIq3ejX8cYJ61i8wTxdlA72RcjP2ukaY6U60xkXxmLt-eTwQq1Ko7xB4B9_RaMdLlpVIbYpOLBEwiYQ7cTaYLnZKrwGKbQf6d4tvM9LjitlycYktkQulV_Dn7waEThYSWcQ-5SfJU44vFeFZY1M1x4Oag"/>
-                    <div class="absolute inset-0 bg-gradient-to-t from-surface-container-low/60 to-transparent"></div>
+                <div class="rounded-xl overflow-hidden aspect-square relative group shadow-sm border-2 border-white/40 transform rotate-1 hover:rotate-0 transition-transform duration-500 shadow-xl">
+                    <img alt="Cute decoration" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmafBMpOsnk74oCH3Z_nkfsjfaabMMXiEEaYU7QXwGXkkEVfWvIJUbBF8n_9gVTMu6cKQHgKzTrXKrqgejYtIbFFo8Re9S4nlifvh3h2vaz04HcUPnJhIq3ejX8cYJ61i8wTxdlA72RcjP2ukaY6U60xkXxmLt-eTwQq1Ko7xB4B9_RaMdLlpVIbYpOLBEwiYQ7cTaYLnZKrwGKbQf6d4tvM9LjitlycYktkQulV_Dn7waEThYSWcQ-5SfJU44vFeFZY1M1x4Oag"/>
+                    <div class="absolute inset-0 bg-gradient-to-t from-surface-container-low/80 to-transparent"></div>
                 </div>
             </div>
         </div>
     </main>
+
+    <footer class="bg-surface-container-low w-full py-6 px-10 flex flex-col md:flex-row justify-between items-center gap-4 text-sm italic opacity-40 mt-auto border-t border-surface-container-high font-body">
+        <div>© 2024 Tactile Playroom :)</div>
+        <div class="flex gap-10">
+            <a class="hover:text-primary transition-colors underline" href="#">How to Play</a>
+            <a class="hover:text-primary transition-colors underline" href="#">Privacy</a>
+            <a class="hover:text-primary transition-colors underline" href="#">Blocks</a>
+        </div>
+    </footer>
 
     <!-- Scripts -->
     <script src="game.js"></script>
