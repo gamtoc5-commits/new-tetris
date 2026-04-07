@@ -1,4 +1,4 @@
-// Phaser 3 Neon Tetris
+// Phaser 3 Neon Tetris - Fixed Version
 const config = {
     type: Phaser.AUTO,
     width: 320,
@@ -41,16 +41,24 @@ const COLORS = {
 
 let board = [];
 let activePiece = null;
-let nextPiece = null;
 let score = 0;
 let level = 1;
 let dropCounter = 0;
 let dropInterval = 1000;
-let gameOver = false;
+let softDropCounter = 0;
+let softDropInterval = 50; // Speed of soft drop in ms
+let gameState = 'INTRO'; // INTRO, PLAYING, GAMEOVER
 
 let cursors;
 let graphics;
 let emitters = {};
+
+// DOM Elements
+const overlay = document.getElementById('overlay');
+const overlayTitle = document.getElementById('overlay-title');
+const startBtn = document.getElementById('start-btn');
+const scoreUI = document.getElementById('score-value');
+const levelUI = document.getElementById('level-value');
 
 function preload() {}
 
@@ -58,33 +66,30 @@ function create() {
     graphics = this.add.graphics();
     cursors = this.input.keyboard.createCursorKeys();
     
-    // UI References
-    this.scoreText = document.getElementById('score-value');
-    this.levelText = document.getElementById('level-value');
-
     // Create board
-    for (let r = 0; r < ROWS; r++) {
-        board[r] = new Array(COLS).fill(0);
-    }
+    initBoard();
 
-    resetPiece.call(this);
+    // Start Button Event
+    startBtn.onclick = () => {
+        startGame.call(this);
+    };
 
     // Keyboard inputs
     this.input.keyboard.on('keydown-UP', () => {
-        if (gameOver) return;
+        if (gameState !== 'PLAYING') return;
         rotatePiece();
     });
 
     this.input.keyboard.on('keydown-SPACE', () => {
-        if (gameOver) return;
+        if (gameState !== 'PLAYING') return;
         hardDrop.call(this);
     });
 
-    // Particle Emitters for each color
+    // Particle Emitters
     Object.keys(COLORS).forEach(key => {
         emitters[key] = this.add.particles(0, 0, createParticleTexture(this, COLORS[key]), {
-            lifespan: 1000,
-            speed: { min: 100, max: 200 },
+            lifespan: 800,
+            speed: { min: 150, max: 250 },
             scale: { start: 1, end: 0 },
             alpha: { start: 1, end: 0 },
             blendMode: 'ADD',
@@ -93,35 +98,69 @@ function create() {
     });
 }
 
-function update(time, delta) {
-    if (gameOver) return;
+function initBoard() {
+    board = [];
+    for (let r = 0; r < ROWS; r++) {
+        board[r] = new Array(COLS).fill(0);
+    }
+}
 
+function startGame() {
+    initBoard();
+    score = 0;
+    level = 1;
+    dropInterval = 1000;
+    updateScoreUI();
+    levelUI.innerText = level;
+    
+    overlay.classList.add('hidden');
+    gameState = 'PLAYING';
+    resetPiece.call(this);
+}
+
+function update(time, delta) {
+    if (gameState !== 'PLAYING') {
+        draw.call(this); // Keep drawing the board/intro state
+        return;
+    }
+
+    // Normal Drop
     dropCounter += delta;
     if (dropCounter > dropInterval) {
         dropPiece.call(this);
         dropCounter = 0;
     }
 
-    // Horizontal movement with small delay
+    // Horizontal movement
     if (Phaser.Input.Keyboard.JustDown(cursors.left)) {
         movePiece(-1, 0);
     } else if (Phaser.Input.Keyboard.JustDown(cursors.right)) {
         movePiece(1, 0);
     }
 
+    // Soft Drop - Fixed with its own interval to prevent freeze
     if (cursors.down.isDown) {
-        dropPiece.call(this);
+        softDropCounter += delta;
+        if (softDropCounter > softDropInterval) {
+            dropPiece.call(this);
+            softDropCounter = 0;
+        }
+    } else {
+        softDropCounter = 0;
     }
 
     draw.call(this);
 }
 
 function createParticleTexture(scene, color) {
+    const key = 'particle_' + color;
+    if (scene.textures.exists(key)) return key;
+    
     const graphics = scene.make.graphics({ x: 0, y: 0, add: false });
     graphics.fillStyle(color, 1);
     graphics.fillCircle(4, 4, 4);
-    graphics.generateTexture('particle_' + color, 8, 8);
-    return 'particle_' + color;
+    graphics.generateTexture(key, 8, 8);
+    return key;
 }
 
 function draw() {
@@ -131,14 +170,13 @@ function draw() {
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             if (board[r][c]) {
-                const color = COLORS[board[r][c]];
-                drawBlock(c, r, color);
+                drawBlock(c, r, COLORS[board[r][c]]);
             }
         }
     }
 
     // Draw active piece
-    if (activePiece) {
+    if (activePiece && gameState === 'PLAYING') {
         const color = COLORS[activePiece.type];
         activePiece.shape.forEach((row, y) => {
             row.forEach((value, x) => {
@@ -149,8 +187,8 @@ function draw() {
         });
     }
 
-    // Draw grid lines
-    graphics.lineStyle(1, 0x333333, 0.5);
+    // Grid lines
+    graphics.lineStyle(1, 0x333333, 0.3);
     for (let x = 0; x <= COLS; x++) {
         graphics.moveTo(x * BLOCK_SIZE, 0);
         graphics.lineTo(x * BLOCK_SIZE, ROWS * BLOCK_SIZE);
@@ -163,17 +201,10 @@ function draw() {
 }
 
 function drawBlock(x, y, color) {
-    // Main block
     graphics.fillStyle(color, 0.8);
     graphics.fillRect(x * BLOCK_SIZE + 1, y * BLOCK_SIZE + 1, BLOCK_SIZE - 2, BLOCK_SIZE - 2);
-    
-    // Neon glow
     graphics.lineStyle(2, color, 1);
     graphics.strokeRect(x * BLOCK_SIZE + 2, y * BLOCK_SIZE + 2, BLOCK_SIZE - 4, BLOCK_SIZE - 4);
-    
-    // Inner shimmer
-    graphics.fillStyle(0xffffff, 0.3);
-    graphics.fillRect(x * BLOCK_SIZE + 4, y * BLOCK_SIZE + 4, BLOCK_SIZE / 4, BLOCK_SIZE / 4);
 }
 
 function resetPiece() {
@@ -187,10 +218,15 @@ function resetPiece() {
     };
 
     if (collide()) {
-        gameOver = true;
-        alert("Game Over! Score: " + score);
-        location.reload();
+        triggerGameOver();
     }
+}
+
+function triggerGameOver() {
+    gameState = 'GAMEOVER';
+    overlayTitle.innerHTML = "GAME OVER<br><span style='font-size:24px'>Score: " + score + "</span>";
+    startBtn.innerText = "Try Again";
+    overlay.classList.remove('hidden');
 }
 
 function collide(newX = activePiece.x, newY = activePiece.y, newShape = activePiece.shape) {
@@ -199,7 +235,6 @@ function collide(newX = activePiece.x, newY = activePiece.y, newShape = activePi
             if (newShape[y][x]) {
                 let boardX = newX + x;
                 let boardY = newY + y;
-                
                 if (boardX < 0 || boardX >= COLS || boardY >= ROWS) return true;
                 if (boardY >= 0 && board[boardY][boardX]) return true;
             }
@@ -209,6 +244,7 @@ function collide(newX = activePiece.x, newY = activePiece.y, newShape = activePi
 }
 
 function movePiece(dx, dy) {
+    if (!activePiece) return false;
     activePiece.x += dx;
     activePiece.y += dy;
     if (collide()) {
@@ -225,9 +261,7 @@ function rotatePiece() {
     );
     const prevShape = activePiece.shape;
     activePiece.shape = rotated;
-    if (collide()) {
-        activePiece.shape = prevShape;
-    }
+    if (collide()) activePiece.shape = prevShape;
 }
 
 function dropPiece() {
@@ -237,26 +271,20 @@ function dropPiece() {
 }
 
 function hardDrop() {
-    while (movePiece(0, 1)) {
-        // Just move down until collision
-    }
+    while (movePiece(0, 1)) {}
     lockPiece.call(this);
 }
 
 function lockPiece() {
     activePiece.shape.forEach((row, y) => {
         row.forEach((value, x) => {
-            if (value) {
-                if (activePiece.y + y >= 0) {
-                    board[activePiece.y + y][activePiece.x + x] = activePiece.type;
-                }
+            if (value && activePiece.y + y >= 0) {
+                board[activePiece.y + y][activePiece.x + x] = activePiece.type;
             }
         });
     });
 
-    // Score for placement
-    updateScore(10);
-    
+    updateScore.call(this, 10);
     clearLines.call(this);
     resetPiece.call(this);
 }
@@ -265,33 +293,33 @@ function clearLines() {
     let linesCleared = 0;
     for (let r = ROWS - 1; r >= 0; r--) {
         if (board[r].every(value => value !== 0)) {
-            // Trigger Particles for this row
             for (let c = 0; c < COLS; c++) {
                 const type = board[r][c];
-                emitters[type].explode(10, c * BLOCK_SIZE + BLOCK_SIZE/2, r * BLOCK_SIZE + BLOCK_SIZE/2);
+                emitters[type].explode(12, c * BLOCK_SIZE + 16, r * BLOCK_SIZE + 16);
             }
-            
             board.splice(r, 1);
             board.unshift(new Array(COLS).fill(0));
             linesCleared++;
-            r++; // Check same row index again
+            r++;
         }
     }
 
     if (linesCleared > 0) {
         const rewards = [0, 100, 300, 500, 800];
-        updateScore(rewards[linesCleared] * level);
-        
-        // Speed up
+        updateScore.call(this, rewards[linesCleared] * level);
         if (score > level * 1000) {
             level++;
             dropInterval = Math.max(100, 1000 - (level - 1) * 100);
-            this.levelText.innerText = level;
+            levelUI.innerText = level;
         }
     }
 }
 
 function updateScore(points) {
     score += points;
-    this.scoreText.innerText = score;
+    updateScoreUI();
+}
+
+function updateScoreUI() {
+    if (scoreUI) scoreUI.innerText = score;
 }

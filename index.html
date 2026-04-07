@@ -13,8 +13,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div id="game-wrapper" style="display: flex; align-items: center; justify-content: center;">
-        <div id="game-container"></div>
+    <div id="game-wrapper" style="display: flex; align-items: center; justify-content: center; position: relative;">
+        <div id="game-container">
+            <!-- Overlay for Intro/Game Over -->
+            <div id="overlay">
+                <h1 id="overlay-title">NEON<br>TETRIS</h1>
+                <button id="start-btn">Start Game</button>
+            </div>
+        </div>
         <div class="ui-panel">
             <div class="score-container">
                 <div class="score-label" id="score-label">Score</div>

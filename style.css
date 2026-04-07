@@ -75,3 +75,52 @@ body {
         margin-left: 20px;
     }
 }
+
+/* New: Overlay Styles */
+#overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 320px; /* Game width */
+    height: 640px; /* Game height */
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 8px;
+    z-index: 100;
+}
+
+#overlay h1 {
+    font-size: 40px;
+    margin-bottom: 20px;
+    color: var(--neon-purple);
+    text-shadow: 0 0 10px var(--neon-purple), 0 0 20px #fff;
+    text-align: center;
+}
+
+#start-btn {
+    padding: 15px 40px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #fff;
+    background: transparent;
+    border: 2px solid var(--neon-blue);
+    border-radius: 50px;
+    cursor: pointer;
+    transition: 0.3s;
+    box-shadow: 0 0 10px var(--neon-blue);
+    text-transform: uppercase;
+}
+
+#start-btn:hover {
+    background: var(--neon-blue);
+    box-shadow: 0 0 30px var(--neon-blue);
+    color: #000;
+}
+
+.hidden {
+    display: none !important;
+}
