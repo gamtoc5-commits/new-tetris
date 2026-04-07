@@ -1,0 +1,77 @@
+/* Modern Neon Purple Gradient Design */
+:root {
+    --bg-gradient: linear-gradient(135deg, #1a0a2e 0%, #301452 100%);
+    --neon-purple: #bc13fe;
+    --neon-blue: #00f3ff;
+    --neon-pink: #ff00ff;
+    --ui-text: #ffffff;
+    --panel-bg: rgba(255, 255, 255, 0.05);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Outfit', 'Inter', -apple-system, sans-serif;
+}
+
+body {
+    background: var(--bg-gradient);
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    color: var(--ui-text);
+}
+
+#game-container {
+    position: relative;
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(188, 19, 254, 0.3);
+    border-radius: 8px;
+    background: #000; /* Phaser canvas background */
+}
+
+.ui-panel {
+    position: absolute;
+    top: 20px;
+    right: -220px;
+    width: 200px;
+    background: var(--panel-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.score-label {
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--neon-blue);
+    text-shadow: 0 0 5px var(--neon-blue);
+}
+
+.score-value {
+    font-size: 32px;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 10px var(--neon-purple);
+}
+
+.controls-hint {
+    margin-top: auto;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+@media (max-width: 900px) {
+    .ui-panel {
+        position: static;
+        margin-left: 20px;
+    }
+}

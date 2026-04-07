@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Tetris - Phaser 3 Edition</title>
+    <meta name="description" content="A modern, neon-themed Tetris game built with Phaser 3, featuring purple gradients and vibrant particle effects.">
+    <link rel="stylesheet" href="style.css">
+    <!-- Phaser 3 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser-arcade-physics.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="game-wrapper" style="display: flex; align-items: center; justify-content: center;">
+        <div id="game-container"></div>
+        <div class="ui-panel">
+            <div class="score-container">
+                <div class="score-label" id="score-label">Score</div>
+                <div class="score-value" id="score-value">0</div>
+            </div>
+            <div class="score-container">
+                <div class="score-label">Level</div>
+                <div class="score-value" id="level-value">1</div>
+            </div>
+            <div class="controls-hint">
+                <p>← → : Move</p>
+                <p>↑ : Rotate</p>
+                <p>↓ : Soft Drop</p>
+                <p>Space : Hard Drop</p>
+            </div>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
