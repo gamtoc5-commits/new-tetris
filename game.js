@@ -1,4 +1,4 @@
-// Phaser 3 Tactile Playroom - Cute Tetris
+// Phaser 3 Tactile Playroom - Cute Tetris (Pixel Perfect Redesign)
 const config = {
     type: Phaser.AUTO,
     width: 320,
@@ -18,7 +18,7 @@ const COLS = 10;
 const ROWS = 20;
 const BLOCK_SIZE = 32;
 
-// Piece Definitions
+// Pieces and Faces
 const SHAPES = {
     'I': [[0,0,0,0], [1,1,1,1], [0,0,0,0], [0,0,0,0]],
     'J': [[1,0,0], [1,1,1], [0,0,0]],
@@ -29,14 +29,13 @@ const SHAPES = {
     'Z': [[1,1,0], [0,1,1], [0,0,0]]
 };
 
-// Pastel Palette from Tailwind Config
 const COLORS = {
     'I': 0xb8dffd, // secondary-container (Blue)
-    'J': 0xaad1ee, // secondary-fixed-dim (Light Blue)
+    'J': 0xeda7c5, // primary-fixed-dim (Soft Pink)
     'L': 0xfdb5d3, // primary-container (Pink)
     'O': 0xbdfac4, // tertiary-container (Green)
-    'S': 0xeda7c5, // primary-fixed-dim (Light Pink)
-    'T': 0xe1dbde, // surface-container-highest (Gray-Lavender)
+    'S': 0xafebb6, // tertiary-fixed-dim (Light Green)
+    'T': 0xe1dbde, // surface-container-highest (Lavender)
     'Z': 0xf74b6d  // error-container (Soft Red)
 };
 
@@ -58,15 +57,13 @@ let canHold = true;
 let score = 0;
 let level = 1;
 let lines = 0;
+let gameState = 'INTRO'; // INTRO, PLAYING, GAMEOVER, PAUSED
 let dropCounter = 0;
 let dropInterval = 1000;
-let softDropCounter = 0;
-let softDropInterval = 50;
-let gameState = 'INTRO'; // INTRO, PLAYING, GAMEOVER, PAUSED
 
-let cursors;
 let graphics;
 let emitters = {};
+let faceTexts = []; // Pooling text objects for active piece faces
 
 // DOM Elements
 const overlay = document.getElementById('overlay');
@@ -82,13 +79,13 @@ function preload() {}
 
 function create() {
     graphics = this.add.graphics();
-    cursors = this.input.keyboard.createCursorKeys();
     
     initBoard();
+    updateUI();
 
-    // UI Buttons
+    // UI Listeners
     startBtn.onclick = () => startGame.call(this);
-    
+
     // D-Pad UI 연동
     document.getElementById('btn-left').onclick = () => { if(gameState==='PLAYING') movePiece(-1, 0); };
     document.getElementById('btn-right').onclick = () => { if(gameState==='PLAYING') movePiece(1, 0); };
@@ -97,23 +94,35 @@ function create() {
     document.getElementById('btn-drop').onclick = () => { if(gameState==='PLAYING') hardDrop.call(this); };
     document.getElementById('btn-hold').onclick = () => { if(gameState==='PLAYING') hold.call(this); };
 
-    // Keyboard Listeners
+    // Keyboard
+    this.input.keyboard.on('keydown-LEFT', () => { if(gameState==='PLAYING') movePiece(-1, 0); });
+    this.input.keyboard.on('keydown-RIGHT', () => { if(gameState==='PLAYING') movePiece(1, 0); });
     this.input.keyboard.on('keydown-UP', () => { if(gameState==='PLAYING') rotatePiece(); });
+    this.input.keyboard.on('keydown-DOWN', () => { if(gameState==='PLAYING') dropPiece.call(this); });
     this.input.keyboard.on('keydown-SPACE', () => { if(gameState==='PLAYING') hardDrop.call(this); });
     this.input.keyboard.on('keydown-C', () => { if(gameState==='PLAYING') hold.call(this); });
     this.input.keyboard.on('keydown-P', () => togglePause.call(this));
 
-    // Particles (Pastel color burst)
+    // Particle Emitters
     Object.keys(COLORS).forEach(key => {
-        emitters[key] = this.add.particles(0, 0, createParticleTexture(this, COLORS[key]), {
+        emitters[key] = this.add.particles(0, 0, createBlockTexture(this, COLORS[key], key), {
             lifespan: 600,
             speed: { min: 100, max: 200 },
             scale: { start: 1, end: 0 },
             alpha: { start: 0.8, end: 0 },
-            blendMode: 'ADD',
             emitting: false
         });
     });
+
+    // Create a pool of 4 text objects for active piece faces
+    for (let i = 0; i < 4; i++) {
+        faceTexts.push(this.add.text(0, 0, '', {
+            fontFamily: 'Plus Jakarta Sans',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            color: '#302e30'
+        }).setOrigin(0.5).setDepth(10).setVisible(false));
+    }
 }
 
 function initBoard() {
@@ -136,7 +145,6 @@ function startGame() {
     updateUI();
     overlay.classList.add('hidden');
     
-    // Initial Spawn
     nextPiece = generateRandomPiece();
     spawnPiece.call(this);
 }
@@ -144,8 +152,8 @@ function startGame() {
 function togglePause() {
     if (gameState === 'PLAYING') {
         gameState = 'PAUSED';
-        overlayTitle.innerText = "Paused";
-        startBtn.querySelector('.font-headline').innerText = "Resume";
+        overlayTitle.innerText = "PAUSED";
+        startBtn.querySelector('.font-headline').innerText = "RESUME";
         overlay.classList.remove('hidden');
     } else if (gameState === 'PAUSED') {
         gameState = 'PLAYING';
@@ -159,26 +167,10 @@ function update(time, delta) {
         return;
     }
 
-    // Normal Drop
     dropCounter += delta;
     if (dropCounter > dropInterval) {
         dropPiece.call(this);
         dropCounter = 0;
-    }
-
-    // Keyboard Inputs (JustDown)
-    if (Phaser.Input.Keyboard.JustDown(cursors.left)) movePiece(-1, 0);
-    if (Phaser.Input.Keyboard.JustDown(cursors.right)) movePiece(1, 0);
-
-    // Soft Drop
-    if (cursors.down.isDown) {
-        softDropCounter += delta;
-        if (softDropCounter > softDropInterval) {
-            dropPiece.call(this);
-            softDropCounter = 0;
-        }
-    } else {
-        softDropCounter = 0;
     }
 
     draw.call(this);
@@ -186,22 +178,38 @@ function update(time, delta) {
 
 function draw() {
     graphics.clear();
+    faceTexts.forEach(t => t.setVisible(false));
 
-    // Board Blocks
+    // Draw Board
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             if (board[r][c]) {
-                drawBlock(c, r, board[r][c]);
+                const type = board[r][c];
+                drawBlock(c, r, type);
+                // For static board, we don't draw faces to keep it clean, or draw them simplified
             }
         }
     }
 
-    // Active Piece
+    // Draw Active Piece with Faces
     if (activePiece && gameState === 'PLAYING') {
+        let textIdx = 0;
         activePiece.shape.forEach((row, y) => {
             row.forEach((value, x) => {
                 if (value) {
-                    drawBlock(activePiece.x + x, activePiece.y + y, activePiece.type);
+                    const blockX = activePiece.x + x;
+                    const blockY = activePiece.y + y;
+                    drawBlock(blockX, blockY, activePiece.type);
+                    
+                    // Show Face
+                    if (textIdx < faceTexts.length) {
+                        const txt = faceTexts[textIdx++];
+                        txt.setText(FACES[activePiece.type]);
+                        txt.setPosition(blockX * BLOCK_SIZE + 16, blockY * BLOCK_SIZE + 18);
+                        txt.setVisible(true);
+                        // Adjust text color based on background luminance (simplified)
+                        txt.setColor(activePiece.type === 'Z' || activePiece.type === 'secondary' ? '#fff' : '#302e30');
+                    }
                 }
             });
         });
@@ -210,25 +218,12 @@ function draw() {
 
 function drawBlock(x, y, type) {
     const color = COLORS[type];
-    const face = FACES[type];
-    
-    // Main Block (Rounded feel via shadow or just rectangle for now, Phaser has limited rounding in Graphics)
     graphics.fillStyle(color, 1);
-    // Mimic rounded-md (approx 4-8px)
-    graphics.fillRoundedRect(x * BLOCK_SIZE + 2, y * BLOCK_SIZE + 2, BLOCK_SIZE - 4, BLOCK_SIZE - 4, 6);
-    
-    // Subtle border/highlight
-    graphics.lineStyle(1, 0xffffff, 0.4);
-    graphics.strokeRoundedRect(x * BLOCK_SIZE + 3, y * BLOCK_SIZE + 3, BLOCK_SIZE - 6, BLOCK_SIZE - 6, 4);
-
-    // Note: To draw the Face text, we'd normally use this.add.text, but for efficiency in draw loop,
-    // we could use a texture. For now, I'll skip text in the raw graphics draw or add them as sprites.
-    // Actually, I'll add text objects for faces to keep the "Cute" vibe!
+    graphics.fillRoundedRect(x * BLOCK_SIZE + 2, y * BLOCK_SIZE + 2, BLOCK_SIZE - 4, BLOCK_SIZE - 4, 8);
+    // Bevel effect
+    graphics.lineStyle(2, 0xffffff, 0.4);
+    graphics.strokeRoundedRect(x * BLOCK_SIZE + 4, y * BLOCK_SIZE + 4, BLOCK_SIZE - 8, BLOCK_SIZE - 8, 6);
 }
-
-// Optimized block face rendering:
-// In a real Phaser game, we'd spawning sprites, but since we are using Graphics for the grid,
-// we could use a Bitmapfont or simple Text. Let's stick to the current logic but add a "block visual" function.
 
 function spawnPiece() {
     activePiece = nextPiece;
@@ -242,8 +237,8 @@ function spawnPiece() {
 
     if (collide()) {
         gameState = 'GAMEOVER';
-        overlayTitle.innerHTML = "GAME OVER<br><span style='font-size:20px; color:#824a64; font-variant:normal;'>Score: " + score + "</span>";
-        startBtn.querySelector('.font-headline').innerText = "Retry";
+        overlayTitle.innerHTML = "GAME OVER<br><span style='font-size:24px; color:#824a64;'>Score: " + score + "</span>";
+        startBtn.querySelector('.font-headline').innerText = "RETRY";
         overlay.classList.remove('hidden');
     }
 }
@@ -251,17 +246,11 @@ function spawnPiece() {
 function generateRandomPiece() {
     const types = 'IJLOSTZ';
     const type = types[Math.floor(Math.random() * types.length)];
-    return {
-        type: type,
-        shape: SHAPES[type],
-        x: 0,
-        y: 0
-    };
+    return { type, shape: SHAPES[type], x: 0, y: 0 };
 }
 
 function hold() {
     if (!canHold) return;
-    
     if (holdPiece === null) {
         holdPiece = { type: activePiece.type, shape: SHAPES[activePiece.type] };
         spawnPiece.call(this);
@@ -269,64 +258,53 @@ function hold() {
         const temp = { type: activePiece.type, shape: SHAPES[activePiece.type] };
         activePiece = { type: holdPiece.type, shape: SHAPES[holdPiece.type], x: Math.floor(COLS/2)-2, y: 0 };
         holdPiece = temp;
-        // Collision check after swap
-        if (collide()) {
-            // Swap back if collision
-            holdPiece = activePiece;
-            activePiece = temp;
-        }
     }
     canHold = false;
     renderPreviews();
 }
 
 function renderPreviews() {
-    // Next Piece HTML
+    // Render Next UI
     nextContainer.innerHTML = '';
-    const nextGrid = document.createElement('div');
-    nextGrid.className = 'grid grid-cols-4 gap-1';
-    nextPiece.shape.forEach(row => {
-        row.forEach(val => {
-            const b = document.createElement('div');
-            b.className = 'w-4 h-4 rounded-sm border border-white/20';
-            if (val) {
-                b.style.backgroundColor = '#' + COLORS[nextPiece.type].toString(16).padStart(6, '0');
-            }
-            nextGrid.appendChild(b);
-        });
-    });
+    const nextGrid = createUIPieceGrid(nextPiece);
     nextContainer.appendChild(nextGrid);
 
-    // Hold Piece HTML
+    // Render Hold UI
     holdContainer.innerHTML = '';
     if (holdPiece) {
-        const holdGrid = document.createElement('div');
-        holdGrid.className = 'grid grid-cols-4 gap-1';
-        holdPiece.shape.forEach(row => {
-            row.forEach(val => {
-                const b = document.createElement('div');
-                b.className = 'w-4 h-4 rounded-sm border border-white/20';
-                if (val) b.style.backgroundColor = '#' + COLORS[holdPiece.type].toString(16).padStart(6, '0');
-                holdGrid.appendChild(b);
-            });
-        });
-        holdContainer.appendChild(holdGrid);
+        holdContainer.appendChild(createUIPieceGrid(holdPiece));
     } else {
-        const icon = document.createElement('span');
-        icon.className = 'material-symbols-outlined text-outline-variant text-4xl';
-        icon.innerText = 'back_hand';
-        holdContainer.appendChild(icon);
+        holdContainer.innerHTML = '<span class="material-symbols-outlined text-outline-variant text-4xl">back_hand</span>';
     }
 }
 
-function collide(newX = activePiece.x, newY = activePiece.y, newShape = activePiece.shape) {
-    for (let y = 0; y < newShape.length; y++) {
-        for (let x = 0; x < newShape[y].length; x++) {
-            if (newShape[y][x]) {
-                let boardX = newX + x;
-                let boardY = newY + y;
-                if (boardX < 0 || boardX >= COLS || boardY >= ROWS) return true;
-                if (boardY >= 0 && board[boardY][boardX]) return true;
+function createUIPieceGrid(piece) {
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-4 gap-1';
+    piece.shape.forEach(row => {
+        row.forEach(val => {
+            const b = document.createElement('div');
+            b.className = 'w-4 h-4 rounded-md border border-white/20';
+            if (val) {
+                b.style.backgroundColor = '#' + COLORS[piece.type].toString(16).padStart(6, '0');
+                b.className += ' shadow-sm';
+            } else {
+                b.className += ' opacity-0';
+            }
+            grid.appendChild(b);
+        });
+    });
+    return grid;
+}
+
+function collide(nX = activePiece.x, nY = activePiece.y, nS = activePiece.shape) {
+    for (let y = 0; y < nS.length; y++) {
+        for (let x = 0; x < nS[y].length; x++) {
+            if (nS[y][x]) {
+                let bX = nX + x;
+                let bY = nY + y;
+                if (bX < 0 || bX >= COLS || bY >= ROWS) return true;
+                if (bY >= 0 && board[bY][bX]) return true;
             }
         }
     }
@@ -348,9 +326,9 @@ function rotatePiece() {
     const rotated = activePiece.shape[0].map((_, i) =>
         activePiece.shape.map(row => row[i]).reverse()
     );
-    const prevShape = activePiece.shape;
+    const prev = activePiece.shape;
     activePiece.shape = rotated;
-    if (collide()) activePiece.shape = prevShape;
+    if (collide()) activePiece.shape = prev;
 }
 
 function dropPiece() {
@@ -372,8 +350,6 @@ function lockPiece() {
             }
         });
     });
-
-    addScore.call(this, 10);
     clearLines.call(this);
     spawnPiece.call(this);
 }
@@ -383,8 +359,7 @@ function clearLines() {
     for (let r = ROWS - 1; r >= 0; r--) {
         if (board[r].every(v => v !== 0)) {
             for (let c = 0; c < COLS; c++) {
-                const type = board[r][c];
-                emitters[type].explode(10, c * BLOCK_SIZE + 16, r * BLOCK_SIZE + 16);
+                emitters[board[r][c]].explode(5, c * BLOCK_SIZE + 16, r * BLOCK_SIZE + 16);
             }
             board.splice(r, 1);
             board.unshift(new Array(COLS).fill(0));
@@ -392,12 +367,9 @@ function clearLines() {
             r++;
         }
     }
-
     if (linesInFrame > 0) {
         lines += linesInFrame;
-        const pts = [0, 100, 300, 500, 800];
-        addScore.call(this, pts[linesInFrame] * level);
-        
+        score += ([0, 100, 300, 500, 800][linesInFrame] || 1200) * level;
         if (lines >= level * 10) {
             level++;
             dropInterval = Math.max(100, 1000 - (level - 1) * 100);
@@ -406,23 +378,18 @@ function clearLines() {
     }
 }
 
-function addScore(pts) {
-    score += pts;
-    updateUI();
-}
-
 function updateUI() {
     if (uiScore) uiScore.innerText = score.toLocaleString().padStart(7, '0');
     if (uiLevel) uiLevel.innerText = level.toString().padStart(2, '0');
     if (uiLines) uiLines.innerText = lines;
 }
 
-function createParticleTexture(scene, color) {
-    const key = 'pastel_' + color;
-    if (scene.textures.exists(key)) return key;
+function createBlockTexture(scene, color, key) {
+    const name = 'block_' + key;
+    if (scene.textures.exists(name)) return name;
     const g = scene.make.graphics({ x: 0, y: 0, add: false });
     g.fillStyle(color, 1);
-    g.fillCircle(4, 4, 4);
-    g.generateTexture(key, 8, 8);
-    return key;
+    g.fillRoundedRect(0, 0, BLOCK_SIZE, BLOCK_SIZE, 8);
+    g.generateTexture(name, BLOCK_SIZE, BLOCK_SIZE);
+    return name;
 }
