@@ -53,6 +53,7 @@ let lines = 0;
 let gameState = 'INTRO';
 let dropCounter = 0;
 let dropInterval = 1000;
+let pieceBag = [];
 
 let graphics;
 let emitters = {};
@@ -123,6 +124,7 @@ function startGame() {
     score = 0; level = 1; lines = 0;
     dropInterval = 1000; holdPiece = null; canHold = true;
     gameState = 'PLAYING';
+    pieceBag = [];
     updateUI();
     overlay.classList.add('hidden');
     nextPiece = generateRandomPiece();
@@ -239,8 +241,14 @@ function spawnPiece() {
 }
 
 function generateRandomPiece() {
-    const types = 'IJLOSTZ';
-    const type = types[Math.floor(Math.random() * types.length)];
+    if (pieceBag.length === 0) {
+        pieceBag = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
+        for (let i = pieceBag.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pieceBag[i], pieceBag[j]] = [pieceBag[j], pieceBag[i]];
+        }
+    }
+    const type = pieceBag.pop();
     return { type, shape: SHAPES[type], x: 0, y: 0 };
 }
 
@@ -271,7 +279,8 @@ function renderPreviews() {
 
 function createPieceGrid(piece) {
     const grid = document.createElement('div');
-    grid.className = 'grid grid-cols-4 gap-1 transform scale-90';
+    grid.className = 'grid gap-1 transform scale-90 w-fit mx-auto';
+    grid.style.gridTemplateColumns = `repeat(${piece.shape[0].length}, 1fr)`;
     piece.shape.forEach(row => {
         row.forEach(val => {
             const b = document.createElement('div');
